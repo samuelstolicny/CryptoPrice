@@ -1,0 +1,17 @@
+# Garmin Connect IQ build files
+bin/
+build/
+*.iq
+*.prg
+developer_key
+
+# IDE files
+.vscode/
+.idea/
+
+# Temporary files
+*.swp
+*~
+
+# macOS system files
+.DS_Store
