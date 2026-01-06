@@ -1,0 +1,6 @@
+<menu id="MainMenu">
+    <menu-item id="refresh" label="Refresh Data" />
+    <menu-item id="add_crypto" label="Add Crypto" />
+    <menu-item id="remove_crypto" label="Remove Crypto" />
+    <menu-item id="settings" label="Settings" />
+</menu>

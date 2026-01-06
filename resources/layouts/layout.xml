@@ -1,3 +1,5 @@
 <layout id="MainLayout" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="https://developer.garmin.com/downloads/connect-iq/resources.xsd">
-    <bitmap id="id_btc" x="center" y="center" filename="../images/btc.png" />
+    <!-- Multi-crypto layout - will be drawn programmatically -->
+    <!-- Placeholder label for page indicator -->
+    <label id="page_indicator" x="center" y="10" text="" justification="Gfx.TEXT_JUSTIFY_CENTER" color="Graphics.COLOR_LT_GRAY" font="Graphics.FONT_TINY" />
 </layout>

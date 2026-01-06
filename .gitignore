@@ -4,6 +4,10 @@ build/
 *.iq
 *.prg
 developer_key
+api_key
+
+# Private configuration files
+source/PrivateConfig.mc
 
 # IDE files
 .vscode/
@@ -15,3 +19,7 @@ developer_key
 
 # macOS system files
 .DS_Store
+
+# Notes
+binanceApiCalls.sh
+design.md

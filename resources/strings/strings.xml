@@ -1,3 +1,5 @@
 <strings xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="https://developer.garmin.com/downloads/connect-iq/resources.xsd">
-    <string id="AppName">crypto_price_widget</string>
+    <string id="AppName">CryptoPrice</string>
+    <string id="Refresh">Refresh</string>
+    <string id="Settings">Settings</string>
 </strings>
