@@ -88,13 +88,25 @@ This widget supports a wide range of Garmin devices including:
 ## Installation
 
 ### From Garmin Connect IQ Store
-*Coming soon!* The widget is currently under development and will be published to the Connect IQ Store.
+Search for "CryptoPrice" in the [Garmin Connect IQ Store](https://apps.garmin.com/) or install directly from your Garmin Connect app.
 
-### Manual Installation (Development)
-For now, you can install manually by building from source:
+### Manual Installation (Sideloading)
+You can install the widget manually by downloading the `.iq` file:
+
+1. Download `CryptoPrice.iq` from the [latest release](https://github.com/SamuelStolicny/CryptoPrice/releases/latest)
+2. Connect your Garmin watch to your computer via USB
+3. Copy `CryptoPrice.iq` to your watch at:
+   ```
+   GARMIN/Apps/
+   ```
+4. Safely eject your watch and disconnect
+5. The widget will appear in your widget list
+
+### Building from Source
+If you want to build it yourself:
 1. Clone this repository
 ```bash
-git clone https://github.com/yourusername/CryptoPrice.git
+git clone https://github.com/SamuelStolicny/CryptoPrice.git
 cd CryptoPrice
 ```
 
@@ -210,7 +222,7 @@ This project is open source and available under the [GNU General Public License]
 ## Support
 
 If you encounter any issues or have questions:
-- Open an issue on [GitHub](https://github.com/yourusername/CryptoPrice/issues)
+- Open an issue on [GitHub](https://github.com/SamuelStolicny/CryptoPrice/issues)
 
 ## Disclaimer
 
