@@ -1,9 +1,6 @@
 import Toybox.Graphics;
 import Toybox.WatchUi;
 import Toybox.Lang;
-import Toybox.Application;
-import Toybox.System;
-using CryptoConfig;
 
 class CryptoPriceView extends WatchUi.View {
     private var _portfolio as CryptoPortfolio;
@@ -62,12 +59,11 @@ class CryptoPriceView extends WatchUi.View {
     function drawCryptoList(dc as Dc) as Void {
         var screenWidth = dc.getWidth();
         var screenHeight = dc.getHeight();
-        var displayCount = _currentCryptos.size() > 3 ? 3 : _currentCryptos.size();
         var itemHeight = screenHeight > 300 ? 90 : 60;
-        var totalListHeight = displayCount * itemHeight;
+        var totalListHeight = _currentCryptos.size() * itemHeight;
         var startY = (screenHeight - totalListHeight) / 2;
-        
-        for (var i = 0; i < displayCount; i++) {
+
+        for (var i = 0; i < _currentCryptos.size(); i++) {
             drawCryptoCurrency(dc, _currentCryptos[i], screenWidth, startY + (i * itemHeight), itemHeight);
         }
         
@@ -92,7 +88,7 @@ class CryptoPriceView extends WatchUi.View {
         // Draw price
         var priceColor = crypto.getPriceChangeColor();
         var displayText = crypto.getDisplayText();
-        if (displayText == null || displayText.length() == 0) {
+        if (displayText.length() == 0) {
             displayText = "No Data";
             priceColor = Graphics.COLOR_YELLOW;
         }
@@ -126,7 +122,6 @@ class CryptoPriceView extends WatchUi.View {
 
     function onDataReceived(result as Dictionary) as Void {
         updateDisplay();
-        WatchUi.requestUpdate();
     }
     
     function updateCurrentCryptos() as Void {
@@ -135,7 +130,7 @@ class CryptoPriceView extends WatchUi.View {
     
     function updateDisplay() as Void {
         updateCurrentCryptos();
-        try { WatchUi.requestUpdate(); } catch (e) {}
+        WatchUi.requestUpdate();
     }
     
     function nextPage() as Boolean {
@@ -154,28 +149,23 @@ class CryptoPriceView extends WatchUi.View {
 
     function addCrypto(symbol as String) as Void {
         _portfolio.addCrypto(symbol);
-        _portfolio.goToLastPage();
-        updateCurrentCryptos();
+        showLastPageNow();
         refreshData();
     }
 
     function showLastPageNow() as Void {
         _portfolio.goToLastPage();
-        updateCurrentCryptos();
-        try { WatchUi.requestUpdate(); } catch (e) {}
+        updateDisplay();
     }
     
     function removeCrypto(symbol as String) as Boolean {
-        var success = _portfolio.removeCryptoCurrency(symbol != null ? symbol.toUpper() : "");
+        var success = _portfolio.removeCryptoCurrency(symbol.toUpper());
         if (success) {
             if (_portfolio.getCount() > 0 && _portfolio.getCurrentPageCryptos().size() == 0) {
                 _portfolio.goToLastPage();
             }
-            updateCurrentCryptos();
-            try { WatchUi.requestUpdate(); } catch (e) {}
+            updateDisplay();
         }
         return success;
     }
-    
-    function onHide() as Void {}
 }

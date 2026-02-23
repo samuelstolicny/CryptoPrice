@@ -7,11 +7,10 @@ class NotificationView extends WatchUi.View {
     private var _message as String;
     private var _expiresAt as Number;
 
-    function initialize(message, durationMs) {
+    function initialize(message as String, durationMs as Number) {
         View.initialize();
-        _message = message != null ? message : "";
-        var duration = (durationMs instanceof Number && durationMs > 0) ? durationMs : 3000;
-        if (duration > 10000) { duration = 10000; }
+        _message = message;
+        var duration = (durationMs > 0 && durationMs <= 10000) ? durationMs : 3000;
         _expiresAt = System.getTimer() + duration;
     }
 

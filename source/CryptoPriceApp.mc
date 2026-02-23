@@ -13,8 +13,6 @@ class CryptoPriceApp extends Application.AppBase {
 
     function initialize() {
         AppBase.initialize();
-        _view = null;
-        _delegate = null;
     }
 
     function onStart(state as Dictionary?) as Void {
@@ -27,7 +25,6 @@ class CryptoPriceApp extends Application.AppBase {
     }
 
     function onStop(state as Dictionary?) as Void {
-        if (_view != null) { _view.onHide(); }
     }
 
     function getInitialView() as [Views] or [Views, InputDelegates] {
@@ -48,41 +45,32 @@ class CryptoPriceApp extends Application.AppBase {
     }
     
     function onBackgroundData(data) as Void {
-        if (data instanceof Dictionary) {
-            var savedCryptos = Storage.getValue("cryptos");
-            if (savedCryptos instanceof Array && savedCryptos.size() > 0) {
-                var firstCrypto = savedCryptos[0];
-                if (firstCrypto instanceof Dictionary) {
-                    var price = data.get("lastPrice");
-                    var percentChange = data.get("priceChangePercent");
-                    
-                    if (price != null) { 
-                        if (price instanceof String) { firstCrypto.put("price", price.toFloat()); }
-                        else if (price instanceof Number) { firstCrypto.put("price", price.toFloat()); }
-                        else if (price instanceof Float) { firstCrypto.put("price", price); }
-                    }
-                    
-                    if (percentChange != null) { 
-                        if (percentChange instanceof String) { firstCrypto.put("percentChange24h", percentChange.toFloat()); }
-                        else if (percentChange instanceof Number) { firstCrypto.put("percentChange24h", percentChange.toFloat()); }
-                        else if (percentChange instanceof Float) { firstCrypto.put("percentChange24h", percentChange); }
-                    }
-                    
-                    savedCryptos[0] = firstCrypto;
-                    Storage.setValue("cryptos", savedCryptos);
-                    
-                    WatchUi.requestUpdate();
-                }
-            }
+        if (!(data instanceof Dictionary)) { return; }
+
+        var savedCryptos = Storage.getValue("cryptos");
+        if (!(savedCryptos instanceof Array) || savedCryptos.size() == 0) { return; }
+
+        var firstCrypto = savedCryptos[0];
+        if (!(firstCrypto instanceof Dictionary)) { return; }
+
+        var price = data.get("lastPrice");
+        if (price instanceof String || price instanceof Number || price instanceof Float) {
+            firstCrypto.put("price", price.toFloat());
         }
+
+        var percentChange = data.get("priceChangePercent");
+        if (percentChange instanceof String || percentChange instanceof Number || percentChange instanceof Float) {
+            firstCrypto.put("percentChange24h", percentChange.toFloat());
+        }
+
+        savedCryptos[0] = firstCrypto;
+        Storage.setValue("cryptos", savedCryptos);
+        WatchUi.requestUpdate();
     }
     
     function onSettingsChanged() as Void {
-        if (_view != null) {
-            var dataManager = _view.getDataManager();
-            if (dataManager != null && !dataManager.isRequestInProgress()) {
-                dataManager.refreshAllPrices();
-            }
+        if (_view != null && !_view.getDataManager().isRequestInProgress()) {
+            _view.getDataManager().refreshAllPrices();
         }
     }
 }

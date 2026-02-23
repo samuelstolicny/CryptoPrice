@@ -6,8 +6,7 @@ class CryptoPriceDelegate extends WatchUi.BehaviorDelegate {
 
     function initialize() {
         BehaviorDelegate.initialize();
-        _view = null;
-    } 
+    }
 
     function setView(view as CryptoPriceView) as Void { _view = view; }
 
@@ -33,8 +32,8 @@ class CryptoPriceDelegate extends WatchUi.BehaviorDelegate {
     
     function onSwipe(evt as WatchUi.SwipeEvent) as Boolean {
         var direction = evt.getDirection();
-        if (direction == WatchUi.SWIPE_LEFT && _view != null) { return _view.nextPage(); }
-        if (direction == WatchUi.SWIPE_RIGHT && _view != null) { return _view.previousPage(); }
+        if (direction == WatchUi.SWIPE_LEFT) { return onNextPage(); }
+        if (direction == WatchUi.SWIPE_RIGHT) { return onPreviousPage(); }
         return false;
     }
     

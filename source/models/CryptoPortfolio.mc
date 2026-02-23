@@ -19,42 +19,27 @@ class CryptoPortfolio {
     private function initializeDefaultCryptos() as Void {
         var savedCryptos = loadCryptosFromSettings();
         var cryptoList = savedCryptos.size() > 0 ? savedCryptos : CryptoConfig.DEFAULT_CRYPTOS;
-        
+
         for (var i = 0; i < cryptoList.size(); i++) {
             var cryptoData = cryptoList[i];
-            if (cryptoData instanceof Dictionary) {
-                var symbol = cryptoData.get("symbol");
-                var name = cryptoData.get("name");
-                if (symbol instanceof String && name instanceof String) {
-                    var crypto = new CryptoCurrency(symbol, name);
-                    
-                    var price = cryptoData.get("price");
-                    var percentChange = cryptoData.get("percentChange24h");
-                    
-                    if (price != null) {
-                        if (price instanceof Float) {
-                            crypto.price = price;
-                        } else if (price instanceof Number) {
-                            crypto.price = price.toFloat();
-                        }
-                        
-                        if (crypto.price != null) {
-                            crypto.priceFormatted = crypto.price >= 1.0 ? "$" + crypto.price.format("%.0f") : "$" + crypto.price.format("%.3f");
-                            crypto.isLoading = false;
-                        }
-                    }
-                    
-                    if (percentChange != null) {
-                        if (percentChange instanceof Float) {
-                            crypto.percentChange24h = percentChange;
-                        } else if (percentChange instanceof Number) {
-                            crypto.percentChange24h = percentChange.toFloat();
-                        }
-                    }
-                    
-                    _cryptocurrencies.add(crypto);
-                }
+            if (!(cryptoData instanceof Dictionary)) { continue; }
+
+            var symbol = cryptoData.get("symbol");
+            var name = cryptoData.get("name");
+            if (!(symbol instanceof String) || !(name instanceof String)) { continue; }
+
+            var crypto = new CryptoCurrency(symbol, name);
+            var price = cryptoData.get("price");
+            var percentChange = cryptoData.get("percentChange24h");
+
+            if (price instanceof Float || price instanceof Number) {
+                crypto.updatePriceData({
+                    "price" => price.toFloat(),
+                    "percent_change_24h" => (percentChange instanceof Float || percentChange instanceof Number) ? percentChange.toFloat() : null
+                });
             }
+
+            _cryptocurrencies.add(crypto);
         }
         if (savedCryptos.size() == 0) { saveCryptosToSettings(); }
     }

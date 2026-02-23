@@ -1,28 +1,13 @@
-import Toybox.Application;
-import Toybox.Application.Storage;
 import Toybox.Lang;
-import Toybox.Timer;
 import Toybox.WatchUi;
-import Toybox.System;
 
-/**
- * Delegate for handling menu selections
- */
 class ShowMenuDelegate extends WatchUi.MenuInputDelegate {
     private var _view as CryptoPriceView?;
 
-    /**
-     * Constructor
-     */
     function initialize() {
         MenuInputDelegate.initialize();
-        _view = null;
     }
-    
-    /**
-     * Set the view reference for menu interactions
-     * @param view The CryptoPriceView instance
-     */
+
     function setView(view as CryptoPriceView) as Void {
         _view = view;
     }

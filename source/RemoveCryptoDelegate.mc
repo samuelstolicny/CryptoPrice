@@ -12,16 +12,14 @@ class RemoveCryptoDelegate extends WatchUi.TextPickerDelegate {
     }
 
     function onTextEntered(text as String, changed as Boolean) as Boolean {
-        if (changed) {
-            var success = _view.removeCrypto(text.toUpper());
-            
-            if (success) {
-                try { WatchUi.popView(WatchUi.SLIDE_IMMEDIATE); } catch(e) {}
-            } else {
-                _pendingNotification = true;
-                var timer = new Timer.Timer();
-                timer.start(method(:showNotification), 150, false);
-            }
+        if (!changed) { return true; }
+
+        if (_view.removeCrypto(text.toUpper())) {
+            try { WatchUi.popView(WatchUi.SLIDE_IMMEDIATE); } catch(e) {}
+        } else {
+            _pendingNotification = true;
+            var timer = new Timer.Timer();
+            timer.start(method(:showNotification), 150, false);
         }
         return true;
     }
