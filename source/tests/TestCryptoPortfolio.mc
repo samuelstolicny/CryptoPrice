@@ -29,7 +29,7 @@ function testAddCrypto(logger as Test.Logger) as Boolean {
     Storage.deleteValue("cryptos");
     var portfolio = new CryptoPortfolio();
     var initialCount = portfolio.getCount();
-    portfolio.addCrypto("ADA");
+    portfolio.addCrypto("ADA", "binance");
     Test.assertEqual(portfolio.getCount(), initialCount + 1);
     var found = portfolio.findCryptoCurrency("ADA");
     Test.assertMessage(found != null, "Should find added crypto ADA");
@@ -41,7 +41,7 @@ function testAddCryptoCurrencyWithName(logger as Test.Logger) as Boolean {
     Storage.deleteValue("cryptos");
     var portfolio = new CryptoPortfolio();
     var initialCount = portfolio.getCount();
-    portfolio.addCryptoCurrency("DOGE", "Dogecoin");
+    portfolio.addCryptoCurrency("DOGE", "Dogecoin", "binance");
     Test.assertEqual(portfolio.getCount(), initialCount + 1);
     var found = portfolio.findCryptoCurrency("DOGE");
     Test.assertMessage(found != null, "Should find added crypto DOGE");
@@ -194,7 +194,7 @@ function testGetCount(logger as Test.Logger) as Boolean {
     Storage.deleteValue("cryptos");
     var portfolio = new CryptoPortfolio();
     Test.assertEqual(portfolio.getCount(), 6);
-    portfolio.addCrypto("AVAX");
+    portfolio.addCrypto("AVAX", "binance");
     Test.assertEqual(portfolio.getCount(), 7);
     portfolio.removeCryptoCurrency("AVAX");
     Test.assertEqual(portfolio.getCount(), 6);
@@ -205,8 +205,8 @@ function testGetCount(logger as Test.Logger) as Boolean {
 function testResetToDefaults(logger as Test.Logger) as Boolean {
     Storage.deleteValue("cryptos");
     var portfolio = new CryptoPortfolio();
-    portfolio.addCrypto("AVAX");
-    portfolio.addCrypto("LINK");
+    portfolio.addCrypto("AVAX", "binance");
+    portfolio.addCrypto("LINK", "binance");
     Test.assertEqual(portfolio.getCount(), 8);
     portfolio.resetToDefaults();
     Test.assertEqual(portfolio.getCount(), 6);

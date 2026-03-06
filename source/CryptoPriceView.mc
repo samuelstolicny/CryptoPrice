@@ -147,8 +147,8 @@ class CryptoPriceView extends WatchUi.View {
     function getDataManager() as CryptoDataManager { return _dataManager; }
     function requestResetOnNextShow() as Void { _resetRequested = true; }
 
-    function addCrypto(symbol as String) as Void {
-        _portfolio.addCrypto(symbol);
+    function addCrypto(symbol as String, exchange as String) as Void {
+        _portfolio.addCrypto(symbol, exchange);
         showLastPageNow();
         refreshData();
     }

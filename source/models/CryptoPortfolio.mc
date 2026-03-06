@@ -29,6 +29,8 @@ class CryptoPortfolio {
             if (!(symbol instanceof String) || !(name instanceof String)) { continue; }
 
             var crypto = new CryptoCurrency(symbol, name);
+            var ex = cryptoData.get("exchange");
+            if (ex instanceof String) { crypto.exchange = ex; }
             var price = cryptoData.get("price");
             var percentChange = cryptoData.get("percentChange24h");
 
@@ -44,13 +46,15 @@ class CryptoPortfolio {
         if (savedCryptos.size() == 0) { saveCryptosToSettings(); }
     }
     
-    function addCryptoCurrency(symbol as String, name as String) as Void {
-        _cryptocurrencies.add(new CryptoCurrency(symbol, name));
+    function addCryptoCurrency(symbol as String, name as String, exchange as String) as Void {
+        var crypto = new CryptoCurrency(symbol, name);
+        crypto.exchange = exchange;
+        _cryptocurrencies.add(crypto);
         saveCryptosToSettings();
     }
 
-    function addCrypto(symbol as String) as Void {
-        addCryptoCurrency(symbol, symbol);
+    function addCrypto(symbol as String, exchange as String) as Void {
+        addCryptoCurrency(symbol, symbol, exchange);
     }
     
     function findCryptoCurrency(symbol as String) as CryptoCurrency? {
@@ -123,11 +127,12 @@ class CryptoPortfolio {
     function saveCryptosToSettings() as Void {
         var cryptosToSave = [];
         for (var i = 0; i < _cryptocurrencies.size(); i++) {
-            cryptosToSave.add({ 
-                "symbol" => _cryptocurrencies[i].symbol, 
+            cryptosToSave.add({
+                "symbol" => _cryptocurrencies[i].symbol,
                 "name" => _cryptocurrencies[i].name,
                 "price" => _cryptocurrencies[i].price,
-                "percentChange24h" => _cryptocurrencies[i].percentChange24h
+                "percentChange24h" => _cryptocurrencies[i].percentChange24h,
+                "exchange" => _cryptocurrencies[i].exchange
             });
         }
         Storage.setValue("cryptos", cryptosToSave);

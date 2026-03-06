@@ -7,14 +7,14 @@ using CryptoConfig;
 class CryptoDataManager {
     private var _callback as Method?;
     private var _portfolio as CryptoPortfolio;
-    private var _isRequestInProgress as Boolean;
+    private var _pendingRequestCount as Number;
     private var _lastRequestTime as Number;
     private var _minRequestInterval as Number;
-    
+
     function initialize(portfolio as CryptoPortfolio) {
         _callback = null;
         _portfolio = portfolio;
-        _isRequestInProgress = false;
+        _pendingRequestCount = 0;
         _lastRequestTime = 0;
         _minRequestInterval = 1;
     }
@@ -26,14 +26,36 @@ class CryptoDataManager {
         var cryptosToUpdate = _portfolio.getCryptosNeedingRefresh();
         if (cryptosToUpdate.size() == 0) { return; }
         setLoadingState(cryptosToUpdate);
-        makeApiRequestForSymbols(cryptosToUpdate);
+
+        var binanceSymbols = [];
+        var kucoinSymbols = [];
+        for (var i = 0; i < cryptosToUpdate.size(); i++) {
+            var s = cryptosToUpdate[i];
+            var crypto = _portfolio.findCryptoCurrency(s);
+            if (crypto != null && crypto.exchange.equals("kucoin")) {
+                kucoinSymbols.add(s);
+            } else {
+                binanceSymbols.add(s);
+            }
+        }
+
+        if (binanceSymbols.size() > 0) {
+            makeApiRequestForSymbols(binanceSymbols);
+        }
+        for (var i = 0; i < kucoinSymbols.size(); i++) {
+            makeKucoinRequest(kucoinSymbols[i]);
+        }
     }
-    
+
     function fetchCryptoPrice(symbol as String) as Void {
         if (!canMakeRequest()) { return; }
         var crypto = _portfolio.findCryptoCurrency(symbol);
         if (crypto != null) { crypto.setLoading(); }
-        makeApiRequestForSymbols([symbol]);
+        if (crypto != null && crypto.exchange.equals("kucoin")) {
+            makeKucoinRequest(symbol);
+        } else {
+            makeApiRequestForSymbols([symbol]);
+        }
     }
 
     function validateSymbol(symbol as String, callback as Method) as Void {
@@ -53,16 +75,49 @@ class CryptoDataManager {
     private var _pendingValidationSymbol as String?;
 
     function onValidateSymbol(responseCode as Number, data as Dictionary or String or Null) as Void {
+        var ok = (_pendingValidationSymbol != null && responseCode == 200 && data instanceof Dictionary && data.get("symbol") instanceof String);
+        if (ok) {
+            var cb = _pendingValidationCallback;
+            var symbol = _pendingValidationSymbol;
+            _pendingValidationCallback = null;
+            _pendingValidationSymbol = null;
+            if (cb != null) { cb.invoke({ "success" => true, "symbol" => symbol, "exchange" => "binance" }); }
+        } else {
+            validateSymbolKucoin();
+        }
+    }
+
+    private function validateSymbolKucoin() as Void {
+        var symbol = _pendingValidationSymbol;
+        if (symbol == null) { return; }
+        var url = CryptoConfig.KUCOIN_24H_STATS_URL;
+        var parameters = { "symbol" => symbol + "-USDT" };
+        var options = {
+            :method => Communications.HTTP_REQUEST_METHOD_GET,
+            :responseType => Communications.HTTP_RESPONSE_CONTENT_TYPE_JSON,
+            :headers => { "Accept" => "application/json" }
+        };
+        Communications.makeWebRequest(url, parameters, options, method(:onValidateSymbolKucoin));
+    }
+
+    function onValidateSymbolKucoin(responseCode as Number, data as Dictionary or String or Null) as Void {
         var cb = _pendingValidationCallback;
         var symbol = _pendingValidationSymbol;
         _pendingValidationCallback = null;
         _pendingValidationSymbol = null;
-        var ok = (symbol != null && responseCode == 200 && data instanceof Dictionary && data.get("symbol") instanceof String);
-        if (cb != null) { cb.invoke({ "success" => ok, "symbol" => symbol }); }
+        var ok = false;
+        if (symbol != null && responseCode == 200 && data instanceof Dictionary) {
+            var code = data.get("code");
+            var inner = data.get("data");
+            if (code instanceof String && code.equals("200000") && inner instanceof Dictionary && inner.get("last") != null) {
+                ok = true;
+            }
+        }
+        if (cb != null) { cb.invoke({ "success" => ok, "symbol" => symbol, "exchange" => "kucoin" }); }
     }
     
     private function canMakeRequest() as Boolean {
-        if (_isRequestInProgress) { return false; }
+        if (_pendingRequestCount > 0) { return false; }
         return (Time.now().value() - _lastRequestTime) >= _minRequestInterval;
     }
     
@@ -83,7 +138,7 @@ class CryptoDataManager {
     }
 
     private function makeApiRequestForSymbols(symbolArray as Array<String>) as Void {
-        _isRequestInProgress = true;
+        _pendingRequestCount++;
         _lastRequestTime = Time.now().value();
 
         var pairs = [];
@@ -103,7 +158,7 @@ class CryptoDataManager {
     }
     
     function onDataReceived(responseCode as Number, data as Dictionary or String or Null) as Void {
-        _isRequestInProgress = false;
+        _pendingRequestCount--;
         
         if (responseCode != 200) {
             handleError(CryptoConfig.getErrorMessageForResponseCode(responseCode));
@@ -169,25 +224,91 @@ class CryptoDataManager {
         return true;
     }
 
+    private function makeKucoinRequest(symbol as String) as Void {
+        _pendingRequestCount++;
+        _lastRequestTime = Time.now().value();
+        var url = CryptoConfig.KUCOIN_24H_STATS_URL;
+        var parameters = { "symbol" => symbol + "-USDT" };
+        var options = {
+            :method => Communications.HTTP_REQUEST_METHOD_GET,
+            :responseType => Communications.HTTP_RESPONSE_CONTENT_TYPE_JSON,
+            :headers => { "Accept" => "application/json" }
+        };
+        Communications.makeWebRequest(url, parameters, options, method(:onKucoinDataReceived));
+    }
+
+    function onKucoinDataReceived(responseCode as Number, data as Dictionary or String or Null) as Void {
+        _pendingRequestCount--;
+        if (responseCode != 200 || !(data instanceof Dictionary)) {
+            if (_pendingRequestCount <= 0) {
+                if (_callback != null) { _callback.invoke({ "success" => false, "error" => "KuCoin error" }); }
+            }
+            return;
+        }
+
+        var code = data.get("code");
+        var inner = data.get("data");
+        if (!(code instanceof String) || !code.equals("200000") || !(inner instanceof Dictionary)) {
+            if (_pendingRequestCount <= 0) {
+                if (_callback != null) { _callback.invoke({ "success" => false, "error" => "KuCoin error" }); }
+            }
+            return;
+        }
+
+        var symbolPair = inner.get("symbol");
+        if (symbolPair instanceof String) {
+            var dashIndex = symbolPair.find("-");
+            if (dashIndex != null && dashIndex >= 0) {
+                var baseSymbol = symbolPair.substring(0, dashIndex);
+                var crypto = _portfolio.findCryptoCurrency(baseSymbol);
+                if (crypto != null) {
+                    var priceStr = inner.get("last");
+                    if (priceStr instanceof String) {
+                        var price = simpleParseFloat(priceStr);
+                        var percentChange = null;
+                        var changeRateStr = inner.get("changeRate");
+                        if (changeRateStr instanceof String) {
+                            percentChange = simpleParseFloat(changeRateStr) * 100.0;
+                        }
+                        crypto.updatePriceData({ "price" => price, "percent_change_24h" => percentChange });
+                        _portfolio.saveCryptosToSettings();
+                    }
+                }
+            }
+        }
+
+        Storage.setValue(CryptoConfig.STORAGE_LAST_UPDATE, Time.now().value());
+        if (_pendingRequestCount <= 0 && _callback != null) {
+            _callback.invoke({ "success" => true, "updateCount" => 1 });
+        }
+    }
+
     private function simpleParseFloat(s as String) as Float {
         if (s == null || s.length() == 0) { return 0.0; }
-        var dotPos = s.find(".");
-        if (dotPos < 0) {
-            try { return s.toNumber().toFloat(); } catch(e) { return 0.0; }
+        var negative = false;
+        var str = s;
+        if (s.substring(0, 1).equals("-")) {
+            negative = true;
+            str = s.substring(1, s.length());
         }
-        var intPart = s.substring(0, dotPos);
-        var fracPart = s.substring(dotPos + 1, s.length());
+        var dotPos = str.find(".");
+        if (dotPos == null || dotPos < 0) {
+            try { var v = str.toNumber().toFloat(); return negative ? -v : v; } catch(e) { return 0.0; }
+        }
+        var intPart = str.substring(0, dotPos);
+        var fracPart = str.substring(dotPos + 1, str.length());
         var intVal = 0.0;
         try { intVal = intPart.length() > 0 ? intPart.toNumber().toFloat() : 0.0; } catch(e) { intVal = 0.0; }
         var fracVal = 0.0;
         var scale = 1.0;
         for (var i = 0; i < fracPart.length() && i < 8; i++) {
             var idx = "0123456789".find(fracPart.substring(i, i+1));
-            if (idx < 0) { break; }
+            if (idx == null || idx < 0) { break; }
             scale *= 10.0;
             fracVal += idx / scale;
         }
-        return (intVal + fracVal).toFloat();
+        var result = (intVal + fracVal).toFloat();
+        return negative ? -result : result;
     }
     
     private function handleError(message as String) as Void {
@@ -198,7 +319,7 @@ class CryptoDataManager {
         if (_callback != null) { _callback.invoke({ "success" => false, "error" => message }); }
     }
     
-    function isRequestInProgress() as Boolean { return _isRequestInProgress; }
+    function isRequestInProgress() as Boolean { return _pendingRequestCount > 0; }
     
     function getLastUpdateTime() as Number {
         var lastUpdate = Storage.getValue(CryptoConfig.STORAGE_LAST_UPDATE);

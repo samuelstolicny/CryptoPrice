@@ -4,6 +4,7 @@ import Toybox.Lang;
 (:glance :background)
 module CryptoConfig {
     const BINANCE_24H_TICKER_URL = "https://api.binance.com/api/v3/ticker/24hr";
+    const KUCOIN_24H_STATS_URL = "https://api.kucoin.com/api/v1/market/stats";
     
     const DEFAULT_CRYPTOS = [
         { "symbol" => "BTC", "name" => "Bitcoin" },

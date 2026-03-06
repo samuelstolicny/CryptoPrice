@@ -19,8 +19,11 @@ class AddCryptoDelegate extends WatchUi.TextPickerDelegate {
         var success = result.get("success");
         var symbol = result.get("symbol");
 
+        var exchange = result.get("exchange");
+        if (!(exchange instanceof String)) { exchange = "binance"; }
+
         if (success instanceof Boolean && success && symbol instanceof String && symbol.length() > 0) {
-            _view.addCrypto(symbol);
+            _view.addCrypto(symbol, exchange);
             _view.showLastPageNow();
         } else {
             try { WatchUi.popView(WatchUi.SLIDE_IMMEDIATE); } catch(e) {}

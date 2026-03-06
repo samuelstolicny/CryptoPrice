@@ -13,7 +13,8 @@ class CryptoCurrency {
     public var isLoading as Boolean;
     public var hasError as Boolean;
     public var errorMessage as String?;
-    
+    public var exchange as String;
+
     function initialize(symbol as String, name as String) {
         self.symbol = symbol;
         self.name = name;
@@ -24,6 +25,7 @@ class CryptoCurrency {
         self.isLoading = true;
         self.hasError = false;
         self.errorMessage = null;
+        self.exchange = "binance";
     }
     
     function updatePriceData(priceData as Dictionary) as Void {
