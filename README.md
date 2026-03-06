@@ -11,17 +11,17 @@ A real-time cryptocurrency price tracker for Garmin smartwatches. Monitor your f
 
 ## Features
 
-- **Real-Time Price Updates** - Track live cryptocurrency prices using Binance API
+- **Real-Time Price Updates** - Track live cryptocurrency prices using Binance and KuCoin APIs
 - **Multiple Cryptocurrencies** - Monitor crypto assets with paginated view (3 per page)
 - **24-Hour Price Changes** - View percentage changes with color-coded indicators (green for gains, red for losses)
 - **Glance View Support** - Quick price check from your watch face without opening the app
 - **Background Updates** - Automatic price refreshes every 60 minutes. Manually each time the app is opened
 - **Add/Remove Cryptos** - Easily manage your crypto portfolio from the watch
-- **No API Key Required** - Uses public Binance API endpoints
+- **No API Key Required** - Uses public Binance and KuCoin API endpoints
 
 ## Supported Cryptocurrencies
 
-The widget validates symbols against Binance's USDT trading pairs. Popular cryptocurrencies include:
+The widget validates symbols against Binance and KuCoin USDT trading pairs. If a symbol isn't found on Binance, KuCoin is checked automatically. Popular cryptocurrencies include:
 - Bitcoin (BTC)
 - Ethereum (ETH)
 - Binance Coin (BNB)
@@ -144,19 +144,19 @@ Add the widget to your glance loop to see the first cryptocurrency in your portf
 
 ### Architecture
 - **Language**: Monkey C (Connect IQ SDK)
-- **API**: Binance Public API (no authentication required)
+- **API**: Binance and KuCoin Public APIs (no authentication required)
 - **Data Storage**: Local device storage using Connect IQ Storage API
 - **Update Frequency**: Manual refresh + automatic background updates every 60 minutes
 - **Permissions**: Communications, Background
 
 ### API Endpoints
-- Price Data: `https://api.binance.com/api/v3/ticker/24hr`
-- Trading Pairs: USDT base (e.g., BTCUSDT, ETHUSDT)
+- Binance: `https://api.binance.com/api/v3/ticker/24hr` (USDT pairs, e.g., BTCUSDT)
+- KuCoin (fallback): `https://api.kucoin.com/api/v1/market/stats` (USDT pairs, e.g., BTC-USDT)
 
 ### Rate Limiting
 - Implements request throttling to prevent API rate limit issues
 - Minimum 1-second interval between requests
-- Batches multiple crypto updates into single API calls
+- Batches multiple Binance crypto updates into single API calls
 
 ## Development
 
@@ -204,7 +204,7 @@ Contributions are welcome! Here's how you can help:
 5. Open a Pull Request
 
 ### Areas for Contribution
-- Additional cryptocurrency exchange support (Coinbase, Kraken, etc.)
+- Additional cryptocurrency exchange support (Coinbase, etc.)
 - More customization options (colors, refresh intervals)
 - Additional data points (volume, market cap, etc.)
 - Localization (translations)
@@ -216,7 +216,7 @@ This project is open source and available under the [GNU General Public License]
 
 ## Acknowledgments
 
-- Price data provided by [Binance API](https://binance-docs.github.io/apidocs/spot/en/)
+- Price data provided by [Binance API](https://binance-docs.github.io/apidocs/spot/en/) and [KuCoin API](https://www.kucoin.com/docs/rest/spot-trading/market-data/get-24hr-stats)
 - Built with [Garmin Connect IQ SDK](https://developer.garmin.com/connect-iq/)
 
 ## Support

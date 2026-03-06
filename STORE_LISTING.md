@@ -6,7 +6,7 @@ CryptoPrice - Live Crypto Tracker
 
 ## Description (4000 characters max)
 
-A simple widget to check crypto prices on your Garmin watch. Shows real-time prices and 24-hour changes pulled from the Binance public API.
+A simple widget to check crypto prices on your Garmin watch. Shows real-time prices and 24-hour changes pulled from Binance and KuCoin public APIs.
 
 WHAT IT DOES
 
@@ -22,7 +22,7 @@ You can customize this list to whatever you want.
 
 LIMITATIONS
 
-Only cryptocurrencies available on Binance with a USDT trading pair are supported. Most major coins work (BTC, ETH, SOL, ADA, XRP, DOGE, etc.), but some smaller or region-specific tokens might not be available.
+Cryptocurrencies with a USDT trading pair on Binance or KuCoin are supported. Most major coins work (BTC, ETH, SOL, ADA, XRP, DOGE, etc.).
 
 WHY I MADE THIS
 
