@@ -88,7 +88,7 @@ This widget supports a wide range of Garmin devices including:
 ## Installation
 
 ### From Garmin Connect IQ Store
-Search for "CryptoPrice" in the [Garmin Connect IQ Store](https://apps.garmin.com/) or install directly from your Garmin Connect app.
+Install directly from the [Garmin Connect IQ Store](https://apps.garmin.com/apps/e47e591d-6923-411f-b303-1a0634a8ffaa) or search for "CryptoPrice" in your Garmin Connect app.
 
 ### Manual Installation (Sideloading)
 You can install the widget manually by downloading the `.iq` file:
