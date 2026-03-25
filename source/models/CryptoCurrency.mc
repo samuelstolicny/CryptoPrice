@@ -32,28 +32,37 @@ class CryptoCurrency {
         self.isLoading = false;
         self.hasError = false;
         self.errorMessage = null;
-        
+
         var p = priceData.get("price");
         if (p instanceof Float or p instanceof Double or p instanceof Number) {
             self.price = p.toFloat();
-            // Format to always show at least 3 significant digits
-            if (self.price >= 100.0) {
-                self.priceFormatted = "$" + self.price.format("%.0f");
-            } else if (self.price >= 10.0) {
-                self.priceFormatted = "$" + self.price.format("%.1f");
-            } else if (self.price >= 1.0) {
-                self.priceFormatted = "$" + self.price.format("%.2f");
-            } else {
-                self.priceFormatted = "$" + self.price.format("%.3f");
-            }
         }
-        
+
         var pc = priceData.get("percent_change_24h");
         if (pc instanceof Float or pc instanceof Double or pc instanceof Number) {
             self.percentChange24h = pc.toFloat();
         }
-        
+
         self.lastUpdated = Time.now().value();
+        formatPriceDisplay(CryptoConfig.getDisplayCurrencyRate(), CryptoConfig.getDisplayCurrencySymbol());
+    }
+
+    function formatPriceDisplay(rate as Float, currencySymbol as String) as Void {
+        if (self.price == null) { return; }
+        var convertedPrice = self.price * rate;
+        if (convertedPrice >= 100.0) {
+            self.priceFormatted = currencySymbol + convertedPrice.format("%.0f");
+        } else if (convertedPrice >= 10.0) {
+            self.priceFormatted = currencySymbol + convertedPrice.format("%.1f");
+        } else if (convertedPrice >= 1.0) {
+            self.priceFormatted = currencySymbol + convertedPrice.format("%.2f");
+        } else {
+            self.priceFormatted = currencySymbol + convertedPrice.format("%.3f");
+        }
+    }
+
+    function refreshPriceDisplay() as Void {
+        formatPriceDisplay(CryptoConfig.getDisplayCurrencyRate(), CryptoConfig.getDisplayCurrencySymbol());
     }
     
     function setLoading() as Void {

@@ -10,6 +10,7 @@ class CryptoDataManager {
     private var _pendingRequestCount as Number;
     private var _lastRequestTime as Number;
     private var _minRequestInterval as Number;
+    private var _exchangeRateNeeded as Boolean;
 
     function initialize(portfolio as CryptoPortfolio) {
         _callback = null;
@@ -17,6 +18,7 @@ class CryptoDataManager {
         _pendingRequestCount = 0;
         _lastRequestTime = 0;
         _minRequestInterval = 1;
+        _exchangeRateNeeded = false;
     }
     
     function setCallback(callback as Method) as Void { _callback = callback; }
@@ -24,8 +26,12 @@ class CryptoDataManager {
     function refreshAllPrices() as Void {
         if (!canMakeRequest()) { return; }
         var cryptosToUpdate = _portfolio.getCryptosNeedingRefresh();
-        if (cryptosToUpdate.size() == 0) { return; }
+        if (cryptosToUpdate.size() == 0) {
+            fetchExchangeRateIfNeeded();
+            return;
+        }
         setLoadingState(cryptosToUpdate);
+        _exchangeRateNeeded = true;
 
         var binanceSymbols = [];
         var kucoinSymbols = [];
@@ -193,12 +199,9 @@ class CryptoDataManager {
             _portfolio.saveCryptosToSettings();
         }
 
-        Storage.setValue(CryptoConfig.STORAGE_LAST_UPDATE, Time.now().value());
-        if (_callback != null) {
-            _callback.invoke({ "success" => true, "updateCount" => updateCount });
-        }
+        finalizeRequest({ "success" => true, "updateCount" => updateCount }, false);
     }
-    
+
     private function processBinanceTicker(ticker as Dictionary) as Boolean {
         var symbolPair = ticker.get("symbol");
         if (!(symbolPair instanceof String)) { return false; }
@@ -240,8 +243,8 @@ class CryptoDataManager {
     function onKucoinDataReceived(responseCode as Number, data as Dictionary or String or Null) as Void {
         _pendingRequestCount--;
         if (responseCode != 200 || !(data instanceof Dictionary)) {
-            if (_pendingRequestCount <= 0) {
-                if (_callback != null) { _callback.invoke({ "success" => false, "error" => "KuCoin error" }); }
+            if (_pendingRequestCount <= 0 && _callback != null) {
+                _callback.invoke({ "success" => false, "error" => "KuCoin error" });
             }
             return;
         }
@@ -249,38 +252,41 @@ class CryptoDataManager {
         var code = data.get("code");
         var inner = data.get("data");
         if (!(code instanceof String) || !code.equals("200000") || !(inner instanceof Dictionary)) {
-            if (_pendingRequestCount <= 0) {
-                if (_callback != null) { _callback.invoke({ "success" => false, "error" => "KuCoin error" }); }
+            if (_pendingRequestCount <= 0 && _callback != null) {
+                _callback.invoke({ "success" => false, "error" => "KuCoin error" });
             }
             return;
         }
 
-        var symbolPair = inner.get("symbol");
-        if (symbolPair instanceof String) {
-            var dashIndex = symbolPair.find("-");
-            if (dashIndex != null && dashIndex >= 0) {
-                var baseSymbol = symbolPair.substring(0, dashIndex);
-                var crypto = _portfolio.findCryptoCurrency(baseSymbol);
-                if (crypto != null) {
-                    var priceStr = inner.get("last");
-                    if (priceStr instanceof String) {
-                        var price = simpleParseFloat(priceStr);
-                        var percentChange = null;
-                        var changeRateStr = inner.get("changeRate");
-                        if (changeRateStr instanceof String) {
-                            percentChange = simpleParseFloat(changeRateStr) * 100.0;
-                        }
-                        crypto.updatePriceData({ "price" => price, "percent_change_24h" => percentChange });
-                        _portfolio.saveCryptosToSettings();
-                    }
-                }
-            }
+        if (processKucoinTicker(inner)) {
+            _portfolio.saveCryptosToSettings();
         }
 
-        Storage.setValue(CryptoConfig.STORAGE_LAST_UPDATE, Time.now().value());
-        if (_pendingRequestCount <= 0 && _callback != null) {
-            _callback.invoke({ "success" => true, "updateCount" => 1 });
+        finalizeRequest({ "success" => true, "updateCount" => 1 }, true);
+    }
+
+    private function processKucoinTicker(inner as Dictionary) as Boolean {
+        var symbolPair = inner.get("symbol");
+        if (!(symbolPair instanceof String)) { return false; }
+
+        var dashIndex = symbolPair.find("-");
+        if (dashIndex == null || dashIndex < 0) { return false; }
+
+        var baseSymbol = symbolPair.substring(0, dashIndex);
+        var crypto = _portfolio.findCryptoCurrency(baseSymbol);
+        if (crypto == null) { return false; }
+
+        var priceStr = inner.get("last");
+        if (!(priceStr instanceof String)) { return false; }
+
+        var price = simpleParseFloat(priceStr);
+        var percentChange = null;
+        var changeRateStr = inner.get("changeRate");
+        if (changeRateStr instanceof String) {
+            percentChange = simpleParseFloat(changeRateStr) * 100.0;
         }
+        crypto.updatePriceData({ "price" => price, "percent_change_24h" => percentChange });
+        return true;
     }
 
     private function simpleParseFloat(s as String) as Float {
@@ -311,6 +317,72 @@ class CryptoDataManager {
         return negative ? -result : result;
     }
     
+    function fetchExchangeRateIfNeeded() as Void {
+        var code = CryptoConfig.getDisplayCurrencyCode();
+        if (code.equals("USD")) {
+            Storage.setValue(CryptoConfig.STORAGE_EXCHANGE_RATE, 1.0);
+            return;
+        }
+        if (!isExchangeRateStale()) { return; }
+        fetchExchangeRate(code);
+    }
+
+    function fetchExchangeRate(currencyCode as String) as Void {
+        var url = CryptoConfig.FRANKFURTER_API_URL;
+        var parameters = { "from" => "USD", "to" => currencyCode };
+        var options = {
+            :method => Communications.HTTP_REQUEST_METHOD_GET,
+            :responseType => Communications.HTTP_RESPONSE_CONTENT_TYPE_JSON,
+            :headers => { "Accept" => "application/json" }
+        };
+        _pendingRateCurrency = currencyCode;
+        Communications.makeWebRequest(url, parameters, options, method(:onExchangeRateReceived));
+    }
+
+    private var _pendingRateCurrency as String?;
+
+    function onExchangeRateReceived(responseCode as Number, data as Dictionary or String or Null) as Void {
+        if (responseCode == 200 && data instanceof Dictionary) {
+            var rates = data.get("rates");
+            if (rates instanceof Dictionary && _pendingRateCurrency != null) {
+                var rate = rates.get(_pendingRateCurrency);
+                if (rate instanceof Float || rate instanceof Number) {
+                    Storage.setValue(CryptoConfig.STORAGE_EXCHANGE_RATE, rate.toFloat());
+                    Storage.setValue(CryptoConfig.STORAGE_RATES_LAST_UPDATE, Time.now().value());
+                    refreshAllPriceDisplays();
+                }
+            }
+        }
+        _pendingRateCurrency = null;
+    }
+
+    private function isExchangeRateStale() as Boolean {
+        var lastUpdate = Storage.getValue(CryptoConfig.STORAGE_RATES_LAST_UPDATE);
+        if (!(lastUpdate instanceof Number)) { return true; }
+        return (Time.now().value() - lastUpdate) > 3600;
+    }
+
+    function refreshAllPriceDisplays() as Void {
+        var allCryptos = _portfolio.getAllCryptocurrencies();
+        for (var i = 0; i < allCryptos.size(); i++) {
+            allCryptos[i].refreshPriceDisplay();
+        }
+        if (_callback != null) {
+            _callback.invoke({ "success" => true, "updateCount" => 0 });
+        }
+    }
+
+    private function finalizeRequest(result as Dictionary, waitForPending as Boolean) as Void {
+        Storage.setValue(CryptoConfig.STORAGE_LAST_UPDATE, Time.now().value());
+        if (_pendingRequestCount <= 0 && _exchangeRateNeeded) {
+            _exchangeRateNeeded = false;
+            fetchExchangeRateIfNeeded();
+        }
+        if (_callback != null && (!waitForPending || _pendingRequestCount <= 0)) {
+            _callback.invoke(result);
+        }
+    }
+
     private function handleError(message as String) as Void {
         var allCryptos = _portfolio.getAllCryptocurrencies();
         for (var i = 0; i < allCryptos.size(); i++) {

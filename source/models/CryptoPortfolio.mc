@@ -21,8 +21,7 @@ class CryptoPortfolio {
         var cryptoList = savedCryptos.size() > 0 ? savedCryptos : CryptoConfig.DEFAULT_CRYPTOS;
 
         for (var i = 0; i < cryptoList.size(); i++) {
-            var cryptoData = cryptoList[i];
-            if (!(cryptoData instanceof Dictionary)) { continue; }
+            var cryptoData = cryptoList[i] as Dictionary;
 
             var symbol = cryptoData.get("symbol");
             var name = cryptoData.get("name");

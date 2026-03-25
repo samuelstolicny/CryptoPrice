@@ -1,5 +1,6 @@
 import Toybox.Lang;
 import Toybox.WatchUi;
+using CryptoConfig;
 
 class ShowMenuDelegate extends WatchUi.MenuInputDelegate {
     private var _view as CryptoPriceView?;
@@ -17,6 +18,9 @@ class ShowMenuDelegate extends WatchUi.MenuInputDelegate {
             handleRefresh();
         } else if (item == :settings) {
             var settingsMenu = new WatchUi.Menu2({:title=>"Settings"});
+            var currencyCode = CryptoConfig.getDisplayCurrencyCode();
+            var currencySymbol = CryptoConfig.getDisplayCurrencySymbol();
+            settingsMenu.addItem(new WatchUi.MenuItem("Display Currency", currencyCode + " (" + currencySymbol + ")", "display_currency", null));
             settingsMenu.addItem(new WatchUi.MenuItem("Reset to Defaults", null, "reset_defaults", null));
             WatchUi.pushView(settingsMenu, new SettingsMenuDelegate(_view), WatchUi.SLIDE_UP);
         } else if (item == :add_crypto) {

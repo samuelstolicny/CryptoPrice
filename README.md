@@ -11,17 +11,18 @@ A real-time cryptocurrency price tracker for Garmin smartwatches. Monitor your f
 
 ## Features
 
-- **Real-Time Price Updates** - Track live cryptocurrency prices using Binance API
+- **Real-Time Price Updates** - Track live cryptocurrency prices using Binance and KuCoin APIs
 - **Multiple Cryptocurrencies** - Monitor crypto assets with paginated view (3 per page)
 - **24-Hour Price Changes** - View percentage changes with color-coded indicators (green for gains, red for losses)
+- **Display Currency Selection** - View prices in USD, EUR, GBP, CAD, AUD, or NZD with live exchange rate conversion
 - **Glance View Support** - Quick price check from your watch face without opening the app
 - **Background Updates** - Automatic price refreshes every 60 minutes. Manually each time the app is opened
 - **Add/Remove Cryptos** - Easily manage your crypto portfolio from the watch
-- **No API Key Required** - Uses public Binance API endpoints
+- **No API Key Required** - Uses public Binance and KuCoin API endpoints
 
 ## Supported Cryptocurrencies
 
-The widget validates symbols against Binance's USDT trading pairs. Popular cryptocurrencies include:
+The widget validates symbols against Binance and KuCoin USDT trading pairs. If a symbol isn't found on Binance, KuCoin is checked automatically. Popular cryptocurrencies include:
 - Bitcoin (BTC)
 - Ethereum (ETH)
 - Binance Coin (BNB)
@@ -88,7 +89,7 @@ This widget supports a wide range of Garmin devices including:
 ## Installation
 
 ### From Garmin Connect IQ Store
-Search for "CryptoPrice" in the [Garmin Connect IQ Store](https://apps.garmin.com/) or install directly from your Garmin Connect app.
+Install directly from the [Garmin Connect IQ Store](https://apps.garmin.com/apps/e47e591d-6923-411f-b303-1a0634a8ffaa) or search for "CryptoPrice" in your Garmin Connect app.
 
 ### Manual Installation (Sideloading)
 You can install the widget manually by downloading the `.iq` file:
@@ -133,6 +134,15 @@ cd CryptoPrice
 3. Select "Remove Crypto"
 4. Enter the symbol (e.g., BTC, ETH, SOL)
 
+### Changing Display Currency
+1. Open the widget
+2. Press MENU button
+3. Select "Settings"
+4. Select "Display Currency"
+5. Choose from USD, EUR, GBP, CAD, AUD, or NZD
+
+Prices are fetched in USDT and converted using live exchange rates from the Frankfurter API.
+
 ### Refreshing Prices
 - Prices automatically refresh when you open the app
 - Background updates occur every 60 minutes
@@ -144,19 +154,20 @@ Add the widget to your glance loop to see the first cryptocurrency in your portf
 
 ### Architecture
 - **Language**: Monkey C (Connect IQ SDK)
-- **API**: Binance Public API (no authentication required)
+- **API**: Binance and KuCoin Public APIs (no authentication required)
 - **Data Storage**: Local device storage using Connect IQ Storage API
 - **Update Frequency**: Manual refresh + automatic background updates every 60 minutes
 - **Permissions**: Communications, Background
 
 ### API Endpoints
-- Price Data: `https://api.binance.com/api/v3/ticker/24hr`
-- Trading Pairs: USDT base (e.g., BTCUSDT, ETHUSDT)
+- Binance: `https://api.binance.com/api/v3/ticker/24hr` (USDT pairs, e.g., BTCUSDT)
+- KuCoin (fallback): `https://api.kucoin.com/api/v1/market/stats` (USDT pairs, e.g., BTC-USDT)
+- Frankfurter: `https://api.frankfurter.app/latest` (exchange rates for currency conversion)
 
 ### Rate Limiting
 - Implements request throttling to prevent API rate limit issues
 - Minimum 1-second interval between requests
-- Batches multiple crypto updates into single API calls
+- Batches multiple Binance crypto updates into single API calls
 
 ## Development
 
@@ -175,7 +186,9 @@ CryptoPrice/
 │   ├── CryptoBackgroundServiceDelegate.mc  # Background updates
 │   ├── AddCryptoDelegate.mc         # Add crypto handler
 │   ├── RemoveCryptoDelegate.mc      # Remove crypto handler
-│   └── ...
+│   ├── CurrencyMenuDelegate.mc      # Currency selection handler
+│   ├── SettingsMenuDelegate.mc      # Settings menu handler
+│   └── tests/                       # Unit tests
 ├── resources/
 │   ├── drawables/                   # Icons and images
 │   ├── layouts/                     # UI layouts
@@ -204,7 +217,7 @@ Contributions are welcome! Here's how you can help:
 5. Open a Pull Request
 
 ### Areas for Contribution
-- Additional cryptocurrency exchange support (Coinbase, Kraken, etc.)
+- Additional cryptocurrency exchange support (Coinbase, etc.)
 - More customization options (colors, refresh intervals)
 - Additional data points (volume, market cap, etc.)
 - Localization (translations)
@@ -216,7 +229,8 @@ This project is open source and available under the [GNU General Public License]
 
 ## Acknowledgments
 
-- Price data provided by [Binance API](https://binance-docs.github.io/apidocs/spot/en/)
+- Price data provided by [Binance API](https://binance-docs.github.io/apidocs/spot/en/) and [KuCoin API](https://www.kucoin.com/docs/rest/spot-trading/market-data/get-24hr-stats)
+- Exchange rates provided by [Frankfurter API](https://www.frankfurter.app/)
 - Built with [Garmin Connect IQ SDK](https://developer.garmin.com/connect-iq/)
 
 ## Support

@@ -59,32 +59,76 @@ class CryptoPriceView extends WatchUi.View {
     function drawCryptoList(dc as Dc) as Void {
         var screenWidth = dc.getWidth();
         var screenHeight = dc.getHeight();
-        var itemHeight = screenHeight > 300 ? 90 : 60;
-        var totalListHeight = _currentCryptos.size() * itemHeight;
-        var startY = (screenHeight - totalListHeight) / 2;
 
-        for (var i = 0; i < _currentCryptos.size(); i++) {
-            drawCryptoCurrency(dc, _currentCryptos[i], screenWidth, startY + (i * itemHeight), itemHeight);
-        }
-        
         var pageInfo = _portfolio.getPageInfo();
         var totalPages = pageInfo.get("totalPages");
-        if (totalPages instanceof Number && totalPages > 1) {
+        var hasPageIndicator = (totalPages instanceof Number && totalPages > 1);
+
+        // Available vertical space: below page indicator to bottom
+        var topOffset = hasPageIndicator ? (8 + dc.getFontHeight(Graphics.FONT_TINY)) : 0;
+        var currencyLabel = CryptoConfig.getCurrencyLabel();
+        var labelHeight = (currencyLabel != null) ? dc.getFontHeight(Graphics.FONT_XTINY) : 0;
+        var availableHeight = screenHeight - topOffset - labelHeight;
+        var itemCount = _currentCryptos.size();
+        var maxItemHeight = screenHeight > 300 ? 105 : 70;
+        var itemHeight = itemCount > 0 ? availableHeight / itemCount : availableHeight;
+        if (itemHeight > maxItemHeight) { itemHeight = maxItemHeight; }
+        var startY = topOffset + (availableHeight - (itemCount * itemHeight)) / 2;
+
+        // Determine uniform price font for all items on this page
+        var priceFont = determinePriceFont(dc, screenWidth);
+
+        for (var i = 0; i < itemCount; i++) {
+            drawCryptoCurrency(dc, _currentCryptos[i], screenWidth, startY + (i * itemHeight), itemHeight, priceFont);
+        }
+
+        // Draw currency label (e.g. "CAD", "AUD") below list for dollar-variant currencies
+        if (currencyLabel != null) {
+            var lastItemBottom = startY + (itemCount * itemHeight);
+            dc.setColor(Graphics.COLOR_LT_GRAY, Graphics.COLOR_TRANSPARENT);
+            dc.drawText(screenWidth / 2, lastItemBottom, Graphics.FONT_XTINY, currencyLabel, Graphics.TEXT_JUSTIFY_CENTER);
+        }
+
+        if (hasPageIndicator) {
             drawPageIndicator(dc, pageInfo);
         }
     }
-    
-    function drawCryptoCurrency(dc as Dc, crypto as CryptoCurrency, screenWidth as Number, yPosition as Number, itemHeight as Number) as Void {
+
+    private function determinePriceFont(dc as Dc, screenWidth as Number) as FontDefinition {
+        var mainFont = screenWidth > 300 ? Graphics.FONT_MEDIUM : Graphics.FONT_SMALL;
+        var fallbacks = screenWidth > 300
+            ? [Graphics.FONT_SMALL, Graphics.FONT_TINY]
+            : [Graphics.FONT_TINY, Graphics.FONT_XTINY];
+        var centerX = screenWidth / 2;
+        var symbolX = centerX - (screenWidth > 300 ? 150 : 80);
+        var priceX = centerX + (screenWidth > 300 ? 150 : 80);
+        var availableWidth = priceX - symbolX - 20;
+        var font = mainFont;
+
+        for (var i = 0; i < _currentCryptos.size(); i++) {
+            var crypto = _currentCryptos[i];
+            var symbolWidth = dc.getTextWidthInPixels(crypto.symbol, mainFont);
+            var displayText = crypto.getDisplayText();
+            for (var f = 0; f < fallbacks.size(); f++) {
+                if (symbolWidth + dc.getTextWidthInPixels(displayText, font) > availableWidth) {
+                    font = fallbacks[f];
+                }
+            }
+        }
+        return font;
+    }
+
+    function drawCryptoCurrency(dc as Dc, crypto as CryptoCurrency, screenWidth as Number, yPosition as Number, itemHeight as Number, priceFont as FontDefinition) as Void {
         var centerX = screenWidth / 2;
         var symbolX = centerX - (screenWidth > 300 ? 150 : 80);
         var priceX = centerX + (screenWidth > 300 ? 150 : 80);
         var mainFont = screenWidth > 300 ? Graphics.FONT_MEDIUM : Graphics.FONT_SMALL;
         var mainFontHeight = dc.getFontHeight(mainFont);
-        
+
         // Draw symbol
         dc.setColor(Graphics.COLOR_WHITE, Graphics.COLOR_TRANSPARENT);
         dc.drawText(symbolX, yPosition, mainFont, crypto.symbol, Graphics.TEXT_JUSTIFY_LEFT);
-        
+
         // Draw price
         var priceColor = crypto.getPriceChangeColor();
         var displayText = crypto.getDisplayText();
@@ -92,10 +136,10 @@ class CryptoPriceView extends WatchUi.View {
             displayText = "No Data";
             priceColor = Graphics.COLOR_YELLOW;
         }
-        
+
         dc.setColor(priceColor, Graphics.COLOR_TRANSPARENT);
-        dc.drawText(priceX, yPosition, mainFont, displayText, Graphics.TEXT_JUSTIFY_RIGHT);
-        
+        dc.drawText(priceX, yPosition, priceFont, displayText, Graphics.TEXT_JUSTIFY_RIGHT);
+
         // Draw percentage
         if (crypto.percentChange24h != null) {
             var changeText = (crypto.percentChange24h >= 0 ? "+" : "") + crypto.percentChange24h.format("%.2f") + "%";

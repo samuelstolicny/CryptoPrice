@@ -1,6 +1,8 @@
 import Toybox.Test;
 import Toybox.Lang;
 import Toybox.Graphics;
+import Toybox.Application.Storage;
+using CryptoConfig;
 
 // ============================================================
 // Price formatting tiers
@@ -175,5 +177,141 @@ function testUpdatePriceDataNullPercentChange(logger as Test.Logger) as Boolean 
     // percent_change_24h key is missing, so percentChange24h stays null
     Test.assert(crypto.percentChange24h == null);
     Test.assertEqual(crypto.priceFormatted, "$100");
+    return true;
+}
+
+// ============================================================
+// formatPriceDisplay with currency conversion
+// ============================================================
+
+(:test)
+function testFormatPriceDisplayUSD(logger as Test.Logger) as Boolean {
+    var crypto = new CryptoCurrency("BTC", "Bitcoin");
+    crypto.updatePriceData({"price" => 50000.0, "percent_change_24h" => 1.0});
+    crypto.formatPriceDisplay(1.0, "$");
+    Test.assertEqual(crypto.priceFormatted, "$50000");
+    return true;
+}
+
+(:test)
+function testFormatPriceDisplayEUR(logger as Test.Logger) as Boolean {
+    var crypto = new CryptoCurrency("BTC", "Bitcoin");
+    crypto.updatePriceData({"price" => 50000.0, "percent_change_24h" => 1.0});
+    crypto.formatPriceDisplay(0.92, "€");
+    Test.assertEqual(crypto.priceFormatted, "€46000");
+    return true;
+}
+
+(:test)
+function testFormatPriceDisplayCAD(logger as Test.Logger) as Boolean {
+    var crypto = new CryptoCurrency("ETH", "Ethereum");
+    crypto.updatePriceData({"price" => 3000.0, "percent_change_24h" => 0.0});
+    crypto.formatPriceDisplay(1.36, "$");
+    Test.assertEqual(crypto.priceFormatted, "$4080");
+    return true;
+}
+
+(:test)
+function testFormatPriceDisplayAUDMidValue(logger as Test.Logger) as Boolean {
+    var crypto = new CryptoCurrency("SOL", "Solana");
+    crypto.updatePriceData({"price" => 20.0, "percent_change_24h" => 0.0});
+    crypto.formatPriceDisplay(1.53, "$");
+    Test.assertEqual(crypto.priceFormatted, "$30.6");
+    return true;
+}
+
+(:test)
+function testFormatPriceDisplaySubDollarConverted(logger as Test.Logger) as Boolean {
+    var crypto = new CryptoCurrency("DOGE", "Dogecoin");
+    crypto.updatePriceData({"price" => 0.5, "percent_change_24h" => 0.0});
+    crypto.formatPriceDisplay(0.92, "€");
+    Test.assertEqual(crypto.priceFormatted, "€0.460");
+    return true;
+}
+
+(:test)
+function testFormatPriceDisplayNullPrice(logger as Test.Logger) as Boolean {
+    var crypto = new CryptoCurrency("BTC", "Bitcoin");
+    // price is null by default, formatPriceDisplay should not crash
+    crypto.formatPriceDisplay(0.92, "€");
+    Test.assertEqual(crypto.priceFormatted, "Loading...");
+    return true;
+}
+
+// ============================================================
+// refreshPriceDisplay reads from Storage
+// ============================================================
+
+(:test)
+function testRefreshPriceDisplayUSD(logger as Test.Logger) as Boolean {
+    Storage.deleteValue(CryptoConfig.STORAGE_DISPLAY_CURRENCY);
+    Storage.deleteValue(CryptoConfig.STORAGE_EXCHANGE_RATE);
+    var crypto = new CryptoCurrency("BTC", "Bitcoin");
+    crypto.updatePriceData({"price" => 1000.0, "percent_change_24h" => 0.0});
+    crypto.refreshPriceDisplay();
+    Test.assertEqual(crypto.priceFormatted, "$1000");
+    return true;
+}
+
+(:test)
+function testRefreshPriceDisplayEUR(logger as Test.Logger) as Boolean {
+    Storage.setValue(CryptoConfig.STORAGE_DISPLAY_CURRENCY, "EUR");
+    Storage.setValue(CryptoConfig.STORAGE_EXCHANGE_RATE, 0.9);
+    var crypto = new CryptoCurrency("BTC", "Bitcoin");
+    crypto.updatePriceData({"price" => 1000.0, "percent_change_24h" => 0.0});
+    crypto.refreshPriceDisplay();
+    Test.assertEqual(crypto.priceFormatted, "€900");
+    Storage.deleteValue(CryptoConfig.STORAGE_DISPLAY_CURRENCY);
+    Storage.deleteValue(CryptoConfig.STORAGE_EXCHANGE_RATE);
+    return true;
+}
+
+(:test)
+function testUpdatePriceDataUsesCurrencySettings(logger as Test.Logger) as Boolean {
+    Storage.setValue(CryptoConfig.STORAGE_DISPLAY_CURRENCY, "CAD");
+    Storage.setValue(CryptoConfig.STORAGE_EXCHANGE_RATE, 1.5);
+    var crypto = new CryptoCurrency("ETH", "Ethereum");
+    crypto.updatePriceData({"price" => 2000.0, "percent_change_24h" => 0.0});
+    // 2000 * 1.5 = 3000, CAD now uses "$" symbol with label shown separately
+    Test.assertEqual(crypto.priceFormatted, "$3000");
+    Storage.deleteValue(CryptoConfig.STORAGE_DISPLAY_CURRENCY);
+    Storage.deleteValue(CryptoConfig.STORAGE_EXCHANGE_RATE);
+    return true;
+}
+
+(:test)
+function testCurrencySwitchReformatsPrice(logger as Test.Logger) as Boolean {
+    Storage.deleteValue(CryptoConfig.STORAGE_DISPLAY_CURRENCY);
+    Storage.deleteValue(CryptoConfig.STORAGE_EXCHANGE_RATE);
+    var crypto = new CryptoCurrency("BTC", "Bitcoin");
+    crypto.updatePriceData({"price" => 50000.0, "percent_change_24h" => 1.0});
+    Test.assertEqual(crypto.priceFormatted, "$50000");
+
+    // Switch to EUR
+    Storage.setValue(CryptoConfig.STORAGE_DISPLAY_CURRENCY, "EUR");
+    Storage.setValue(CryptoConfig.STORAGE_EXCHANGE_RATE, 0.9);
+    crypto.refreshPriceDisplay();
+    Test.assertEqual(crypto.priceFormatted, "€45000");
+
+    // Switch back to USD
+    Storage.deleteValue(CryptoConfig.STORAGE_DISPLAY_CURRENCY);
+    Storage.deleteValue(CryptoConfig.STORAGE_EXCHANGE_RATE);
+    crypto.refreshPriceDisplay();
+    Test.assertEqual(crypto.priceFormatted, "$50000");
+    return true;
+}
+
+(:test)
+function testRawPriceUnchangedAfterConversion(logger as Test.Logger) as Boolean {
+    Storage.setValue(CryptoConfig.STORAGE_DISPLAY_CURRENCY, "EUR");
+    Storage.setValue(CryptoConfig.STORAGE_EXCHANGE_RATE, 0.9);
+    var crypto = new CryptoCurrency("BTC", "Bitcoin");
+    crypto.updatePriceData({"price" => 50000.0, "percent_change_24h" => 1.0});
+    // raw price stays in USDT
+    Test.assert(crypto.price > 49999.0 && crypto.price < 50001.0);
+    // but display is converted
+    Test.assertEqual(crypto.priceFormatted, "€45000");
+    Storage.deleteValue(CryptoConfig.STORAGE_DISPLAY_CURRENCY);
+    Storage.deleteValue(CryptoConfig.STORAGE_EXCHANGE_RATE);
     return true;
 }

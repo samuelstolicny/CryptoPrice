@@ -26,20 +26,39 @@ class CryptoPriceGlanceView extends WatchUi.GlanceView {
 
         var crypto = cryptos[0];
         var font = Graphics.FONT_TINY;
+        var smallFont = Graphics.FONT_XTINY;
         var startX = 5;
         var padding = 10;
+        var screenWidth = dc.getWidth();
+
+        var percentText = "";
+        if (crypto.percentChange24h != null) {
+            percentText = (crypto.percentChange24h >= 0 ? "+" : "") + crypto.percentChange24h.format("%.2f") + "%";
+        }
+
+        // Check if everything fits with normal font
+        var symbolWidth = dc.getTextWidthInPixels(crypto.symbol, font);
+        var priceWidth = dc.getTextWidthInPixels(crypto.priceFormatted, font);
+        var percentWidth = percentText.length() > 0 ? dc.getTextWidthInPixels(percentText, smallFont) : 0;
+        var totalWidth = symbolWidth + padding + priceWidth + padding + percentWidth;
+
+        // Use smaller font for price if it doesn't fit
+        var priceFont = font;
+        if (totalWidth > screenWidth) {
+            priceFont = smallFont;
+            priceWidth = dc.getTextWidthInPixels(crypto.priceFormatted, smallFont);
+        }
 
         dc.setColor(Graphics.COLOR_WHITE, Graphics.COLOR_TRANSPARENT);
         dc.drawText(startX, centerY, font, crypto.symbol, justify);
 
-        var priceX = startX + dc.getTextWidthInPixels(crypto.symbol, font) + padding;
+        var priceX = startX + symbolWidth + padding;
         dc.setColor(crypto.getPriceChangeColor(), Graphics.COLOR_TRANSPARENT);
-        dc.drawText(priceX, centerY, font, crypto.priceFormatted, justify);
+        dc.drawText(priceX, centerY, priceFont, crypto.priceFormatted, justify);
 
-        if (crypto.percentChange24h != null) {
-            var percentX = priceX + dc.getTextWidthInPixels(crypto.priceFormatted, font) + padding;
-            var percentText = (crypto.percentChange24h >= 0 ? "+" : "") + crypto.percentChange24h.format("%.2f") + "%";
-            dc.drawText(percentX, centerY, Graphics.FONT_XTINY, percentText, justify);
+        if (percentText.length() > 0) {
+            var percentX = priceX + priceWidth + padding;
+            dc.drawText(percentX, centerY, smallFont, percentText, justify);
         }
     }
 }
