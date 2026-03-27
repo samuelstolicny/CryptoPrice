@@ -202,6 +202,75 @@ function testGetCount(logger as Test.Logger) as Boolean {
 }
 
 (:test)
+function testMoveCryptoUp(logger as Test.Logger) as Boolean {
+    Storage.deleteValue("cryptos");
+    var portfolio = new CryptoPortfolio();
+    var result = portfolio.moveCryptoUp(1);
+    Test.assertEqual(result, true);
+    var cryptos = portfolio.getAllCryptocurrencies();
+    Test.assertEqual(cryptos[0].symbol, "ETH");
+    Test.assertEqual(cryptos[1].symbol, "BTC");
+    return true;
+}
+
+(:test)
+function testMoveCryptoUpAtTop(logger as Test.Logger) as Boolean {
+    Storage.deleteValue("cryptos");
+    var portfolio = new CryptoPortfolio();
+    var result = portfolio.moveCryptoUp(0);
+    Test.assertEqual(result, false);
+    var cryptos = portfolio.getAllCryptocurrencies();
+    Test.assertEqual(cryptos[0].symbol, "BTC");
+    return true;
+}
+
+(:test)
+function testMoveCryptoDown(logger as Test.Logger) as Boolean {
+    Storage.deleteValue("cryptos");
+    var portfolio = new CryptoPortfolio();
+    var result = portfolio.moveCryptoDown(0);
+    Test.assertEqual(result, true);
+    var cryptos = portfolio.getAllCryptocurrencies();
+    Test.assertEqual(cryptos[0].symbol, "ETH");
+    Test.assertEqual(cryptos[1].symbol, "BTC");
+    return true;
+}
+
+(:test)
+function testMoveCryptoDownAtBottom(logger as Test.Logger) as Boolean {
+    Storage.deleteValue("cryptos");
+    var portfolio = new CryptoPortfolio();
+    var result = portfolio.moveCryptoDown(5);
+    Test.assertEqual(result, false);
+    var cryptos = portfolio.getAllCryptocurrencies();
+    Test.assertEqual(cryptos[5].symbol, "POL");
+    return true;
+}
+
+(:test)
+function testMoveCryptoOutOfBounds(logger as Test.Logger) as Boolean {
+    Storage.deleteValue("cryptos");
+    var portfolio = new CryptoPortfolio();
+    Test.assertEqual(portfolio.moveCryptoUp(-1), false);
+    Test.assertEqual(portfolio.moveCryptoDown(6), false);
+    Test.assertEqual(portfolio.getCount(), 6);
+    return true;
+}
+
+(:test)
+function testMoveCryptoPersistence(logger as Test.Logger) as Boolean {
+    Storage.deleteValue("cryptos");
+    var portfolio = new CryptoPortfolio();
+    portfolio.moveCryptoDown(0);
+    // Create new portfolio to verify persistence
+    var portfolio2 = new CryptoPortfolio();
+    var cryptos = portfolio2.getAllCryptocurrencies();
+    Test.assertEqual(cryptos[0].symbol, "ETH");
+    Test.assertEqual(cryptos[1].symbol, "BTC");
+    return true;
+}
+
+(:test)
 function testResetToDefaults(logger as Test.Logger) as Boolean {
     Storage.deleteValue("cryptos");
     var portfolio = new CryptoPortfolio();

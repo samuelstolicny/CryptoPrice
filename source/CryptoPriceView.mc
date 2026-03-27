@@ -202,6 +202,17 @@ class CryptoPriceView extends WatchUi.View {
         updateDisplay();
     }
     
+    function reorderCrypto(index as Number, direction as Symbol) as Boolean {
+        var success = false;
+        if (direction == :up) {
+            success = _portfolio.moveCryptoUp(index);
+        } else if (direction == :down) {
+            success = _portfolio.moveCryptoDown(index);
+        }
+        if (success) { updateDisplay(); }
+        return success;
+    }
+
     function removeCrypto(symbol as String) as Boolean {
         var success = _portfolio.removeCryptoCurrency(symbol.toUpper());
         if (success) {

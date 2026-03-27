@@ -149,5 +149,23 @@ class CryptoPortfolio {
         initializeDefaultCryptos();
     }
     
+    function moveCryptoUp(index as Number) as Boolean {
+        if (index <= 0 || index >= _cryptocurrencies.size()) { return false; }
+        var temp = _cryptocurrencies[index - 1];
+        _cryptocurrencies[index - 1] = _cryptocurrencies[index];
+        _cryptocurrencies[index] = temp;
+        saveCryptosToSettings();
+        return true;
+    }
+
+    function moveCryptoDown(index as Number) as Boolean {
+        if (index < 0 || index >= _cryptocurrencies.size() - 1) { return false; }
+        var temp = _cryptocurrencies[index + 1];
+        _cryptocurrencies[index + 1] = _cryptocurrencies[index];
+        _cryptocurrencies[index] = temp;
+        saveCryptosToSettings();
+        return true;
+    }
+
     function getCount() as Number { return _cryptocurrencies.size(); }
 }
