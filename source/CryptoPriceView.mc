@@ -94,14 +94,20 @@ class CryptoPriceView extends WatchUi.View {
         }
     }
 
+    private function getContentMargin(screenWidth as Number) as Number {
+        // Use 35% of half-width as margin from center, works across all screen sizes
+        return screenWidth * 35 / 100;
+    }
+
     private function determinePriceFont(dc as Dc, screenWidth as Number) as FontDefinition {
         var mainFont = screenWidth > 300 ? Graphics.FONT_MEDIUM : Graphics.FONT_SMALL;
         var fallbacks = screenWidth > 300
             ? [Graphics.FONT_SMALL, Graphics.FONT_TINY]
             : [Graphics.FONT_TINY, Graphics.FONT_XTINY];
         var centerX = screenWidth / 2;
-        var symbolX = centerX - (screenWidth > 300 ? 150 : 80);
-        var priceX = centerX + (screenWidth > 300 ? 150 : 80);
+        var margin = getContentMargin(screenWidth);
+        var symbolX = centerX - margin;
+        var priceX = centerX + margin;
         var availableWidth = priceX - symbolX - 20;
         var font = mainFont;
 
@@ -120,8 +126,9 @@ class CryptoPriceView extends WatchUi.View {
 
     function drawCryptoCurrency(dc as Dc, crypto as CryptoCurrency, screenWidth as Number, yPosition as Number, itemHeight as Number, priceFont as FontDefinition) as Void {
         var centerX = screenWidth / 2;
-        var symbolX = centerX - (screenWidth > 300 ? 150 : 80);
-        var priceX = centerX + (screenWidth > 300 ? 150 : 80);
+        var margin = getContentMargin(screenWidth);
+        var symbolX = centerX - margin;
+        var priceX = centerX + margin;
         var mainFont = screenWidth > 300 ? Graphics.FONT_MEDIUM : Graphics.FONT_SMALL;
         var mainFontHeight = dc.getFontHeight(mainFont);
 
