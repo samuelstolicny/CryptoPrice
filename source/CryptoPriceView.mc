@@ -95,7 +95,6 @@ class CryptoPriceView extends WatchUi.View {
     }
 
     private function getContentMargin(screenWidth as Number) as Number {
-        // Use 35% of half-width as margin from center, works across all screen sizes
         return screenWidth * 35 / 100;
     }
 

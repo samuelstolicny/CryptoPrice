@@ -11,6 +11,7 @@ class CryptoDataManager {
     private var _lastRequestTime as Number;
     private var _minRequestInterval as Number;
     private var _exchangeRateNeeded as Boolean;
+    private var _pendingBinanceSymbols as Array<String>;
 
     function initialize(portfolio as CryptoPortfolio) {
         _callback = null;
@@ -19,6 +20,7 @@ class CryptoDataManager {
         _lastRequestTime = 0;
         _minRequestInterval = 1;
         _exchangeRateNeeded = false;
+        _pendingBinanceSymbols = [];
     }
     
     function setCallback(callback as Method) as Void { _callback = callback; }
@@ -146,6 +148,7 @@ class CryptoDataManager {
     private function makeApiRequestForSymbols(symbolArray as Array<String>) as Void {
         _pendingRequestCount++;
         _lastRequestTime = Time.now().value();
+        _pendingBinanceSymbols = symbolArray;
 
         var pairs = [];
         for (var i = 0; i < symbolArray.size(); i++) {
@@ -165,21 +168,24 @@ class CryptoDataManager {
     
     function onDataReceived(responseCode as Number, data as Dictionary or String or Null) as Void {
         _pendingRequestCount--;
-        
-        if (responseCode != 200) {
-            handleError(CryptoConfig.getErrorMessageForResponseCode(responseCode));
+
+        if (responseCode != 200 || data == null) {
+            fallbackToKucoin();
             return;
         }
-        
-        if (data == null) {
-            handleError("No data received");
-            return;
-        }
-        
+
         try {
             processSuccessfulResponse(data);
         } catch (ex) {
-            handleError("Data processing error");
+            fallbackToKucoin();
+        }
+    }
+
+    private function fallbackToKucoin() as Void {
+        var symbols = _pendingBinanceSymbols;
+        _pendingBinanceSymbols = [];
+        for (var i = 0; i < symbols.size(); i++) {
+            makeKucoinRequest(symbols[i]);
         }
     }
     
@@ -383,14 +389,6 @@ class CryptoDataManager {
         }
     }
 
-    private function handleError(message as String) as Void {
-        var allCryptos = _portfolio.getAllCryptocurrencies();
-        for (var i = 0; i < allCryptos.size(); i++) {
-            if (allCryptos[i].isLoading) { allCryptos[i].setError(message); }
-        }
-        if (_callback != null) { _callback.invoke({ "success" => false, "error" => message }); }
-    }
-    
     function isRequestInProgress() as Boolean { return _pendingRequestCount > 0; }
     
     function getLastUpdateTime() as Number {

@@ -4,12 +4,18 @@ import Toybox.Graphics;
 import Toybox.Application.Storage;
 using CryptoConfig;
 
+function resetCurrencyToUSD() as Void {
+    Storage.deleteValue(CryptoConfig.STORAGE_DISPLAY_CURRENCY);
+    Storage.deleteValue(CryptoConfig.STORAGE_EXCHANGE_RATE);
+}
+
 // ============================================================
 // Price formatting tiers
 // ============================================================
 
 (:test)
 function testPriceFormattingHighValue(logger as Test.Logger) as Boolean {
+    resetCurrencyToUSD();
     var crypto = new CryptoCurrency("BTC", "Bitcoin");
     crypto.updatePriceData({"price" => 45000.0, "percent_change_24h" => 0.0});
     Test.assertEqual(crypto.priceFormatted, "$45000");
@@ -18,6 +24,7 @@ function testPriceFormattingHighValue(logger as Test.Logger) as Boolean {
 
 (:test)
 function testPriceFormattingMidValue(logger as Test.Logger) as Boolean {
+    resetCurrencyToUSD();
     var crypto = new CryptoCurrency("SOL", "Solana");
     crypto.updatePriceData({"price" => 45.5, "percent_change_24h" => 0.0});
     Test.assertEqual(crypto.priceFormatted, "$45.5");
@@ -26,6 +33,7 @@ function testPriceFormattingMidValue(logger as Test.Logger) as Boolean {
 
 (:test)
 function testPriceFormattingLowValue(logger as Test.Logger) as Boolean {
+    resetCurrencyToUSD();
     var crypto = new CryptoCurrency("ADA", "Cardano");
     crypto.updatePriceData({"price" => 1.23, "percent_change_24h" => 0.0});
     Test.assertEqual(crypto.priceFormatted, "$1.23");
@@ -34,6 +42,7 @@ function testPriceFormattingLowValue(logger as Test.Logger) as Boolean {
 
 (:test)
 function testPriceFormattingSubDollar(logger as Test.Logger) as Boolean {
+    resetCurrencyToUSD();
     var crypto = new CryptoCurrency("DOGE", "Dogecoin");
     crypto.updatePriceData({"price" => 0.123, "percent_change_24h" => 0.0});
     Test.assertEqual(crypto.priceFormatted, "$0.123");
@@ -98,6 +107,7 @@ function testDisplayTextError(logger as Test.Logger) as Boolean {
 
 (:test)
 function testDisplayTextNormal(logger as Test.Logger) as Boolean {
+    resetCurrencyToUSD();
     var crypto = new CryptoCurrency("BTC", "Bitcoin");
     crypto.updatePriceData({"price" => 50000.0, "percent_change_24h" => 1.0});
     Test.assertEqual(crypto.getDisplayText(), "$50000");
@@ -161,6 +171,7 @@ function testSetErrorSetsState(logger as Test.Logger) as Boolean {
 
 (:test)
 function testUpdatePriceDataWithFloatPrice(logger as Test.Logger) as Boolean {
+    resetCurrencyToUSD();
     var crypto = new CryptoCurrency("ETH", "Ethereum");
     crypto.updatePriceData({"price" => 3456.78, "percent_change_24h" => 2.5});
     Test.assertNotEqual(crypto.price, null);
@@ -172,6 +183,7 @@ function testUpdatePriceDataWithFloatPrice(logger as Test.Logger) as Boolean {
 
 (:test)
 function testUpdatePriceDataNullPercentChange(logger as Test.Logger) as Boolean {
+    resetCurrencyToUSD();
     var crypto = new CryptoCurrency("BTC", "Bitcoin");
     crypto.updatePriceData({"price" => 100.0});
     // percent_change_24h key is missing, so percentChange24h stays null
@@ -244,8 +256,7 @@ function testFormatPriceDisplayNullPrice(logger as Test.Logger) as Boolean {
 
 (:test)
 function testRefreshPriceDisplayUSD(logger as Test.Logger) as Boolean {
-    Storage.deleteValue(CryptoConfig.STORAGE_DISPLAY_CURRENCY);
-    Storage.deleteValue(CryptoConfig.STORAGE_EXCHANGE_RATE);
+    resetCurrencyToUSD();
     var crypto = new CryptoCurrency("BTC", "Bitcoin");
     crypto.updatePriceData({"price" => 1000.0, "percent_change_24h" => 0.0});
     crypto.refreshPriceDisplay();
@@ -261,8 +272,7 @@ function testRefreshPriceDisplayEUR(logger as Test.Logger) as Boolean {
     crypto.updatePriceData({"price" => 1000.0, "percent_change_24h" => 0.0});
     crypto.refreshPriceDisplay();
     Test.assertEqual(crypto.priceFormatted, "€900");
-    Storage.deleteValue(CryptoConfig.STORAGE_DISPLAY_CURRENCY);
-    Storage.deleteValue(CryptoConfig.STORAGE_EXCHANGE_RATE);
+    resetCurrencyToUSD();
     return true;
 }
 
@@ -274,15 +284,13 @@ function testUpdatePriceDataUsesCurrencySettings(logger as Test.Logger) as Boole
     crypto.updatePriceData({"price" => 2000.0, "percent_change_24h" => 0.0});
     // 2000 * 1.5 = 3000, CAD now uses "$" symbol with label shown separately
     Test.assertEqual(crypto.priceFormatted, "$3000");
-    Storage.deleteValue(CryptoConfig.STORAGE_DISPLAY_CURRENCY);
-    Storage.deleteValue(CryptoConfig.STORAGE_EXCHANGE_RATE);
+    resetCurrencyToUSD();
     return true;
 }
 
 (:test)
 function testCurrencySwitchReformatsPrice(logger as Test.Logger) as Boolean {
-    Storage.deleteValue(CryptoConfig.STORAGE_DISPLAY_CURRENCY);
-    Storage.deleteValue(CryptoConfig.STORAGE_EXCHANGE_RATE);
+    resetCurrencyToUSD();
     var crypto = new CryptoCurrency("BTC", "Bitcoin");
     crypto.updatePriceData({"price" => 50000.0, "percent_change_24h" => 1.0});
     Test.assertEqual(crypto.priceFormatted, "$50000");
@@ -294,8 +302,7 @@ function testCurrencySwitchReformatsPrice(logger as Test.Logger) as Boolean {
     Test.assertEqual(crypto.priceFormatted, "€45000");
 
     // Switch back to USD
-    Storage.deleteValue(CryptoConfig.STORAGE_DISPLAY_CURRENCY);
-    Storage.deleteValue(CryptoConfig.STORAGE_EXCHANGE_RATE);
+    resetCurrencyToUSD();
     crypto.refreshPriceDisplay();
     Test.assertEqual(crypto.priceFormatted, "$50000");
     return true;
@@ -311,7 +318,6 @@ function testRawPriceUnchangedAfterConversion(logger as Test.Logger) as Boolean 
     Test.assert(crypto.price > 49999.0 && crypto.price < 50001.0);
     // but display is converted
     Test.assertEqual(crypto.priceFormatted, "€45000");
-    Storage.deleteValue(CryptoConfig.STORAGE_DISPLAY_CURRENCY);
-    Storage.deleteValue(CryptoConfig.STORAGE_EXCHANGE_RATE);
+    resetCurrencyToUSD();
     return true;
 }
