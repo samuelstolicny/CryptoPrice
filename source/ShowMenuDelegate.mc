@@ -27,6 +27,8 @@ class ShowMenuDelegate extends WatchUi.MenuInputDelegate {
             handleAddCrypto();
         } else if (item == :remove_crypto) {
             handleRemoveCrypto();
+        } else if (item == :reorder) {
+            handleReorder();
         } else if (item == :reset_defaults && _view != null) {
             _view.requestResetOnNextShow();
         }
@@ -48,5 +50,14 @@ class ShowMenuDelegate extends WatchUi.MenuInputDelegate {
         if (_view != null) {
             WatchUi.pushView(new WatchUi.TextPicker(""), new RemoveCryptoDelegate(_view), WatchUi.SLIDE_UP);
         }
+    }
+
+    private function handleReorder() as Void {
+        if (_view == null) { return; }
+        if (_view.getPortfolio().getCount() < 2) {
+            WatchUi.pushView(new NotificationView("Need 2+ cryptos", 3000), null, WatchUi.SLIDE_UP);
+            return;
+        }
+        WatchUi.pushView(buildReorderMenu(_view), new ReorderMenuDelegate(_view), WatchUi.SLIDE_UP);
     }
 }
