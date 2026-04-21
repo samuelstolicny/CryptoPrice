@@ -8,6 +8,11 @@ class CryptoCurrency {
     public var name as String;
     public var price as Float?;
     public var priceFormatted as String;
+    // When price uses bracket-zero notation, pricePrefix holds "$0.0(n)" and
+    // priceMain holds the 3 significant digits, so the view can render the
+    // prefix at a smaller font. Null for standard decimal formatting.
+    public var pricePrefix as String?;
+    public var priceMain as String?;
     public var percentChange24h as Float?;
     public var lastUpdated as Number?;
     public var isLoading as Boolean;
@@ -20,6 +25,8 @@ class CryptoCurrency {
         self.name = name;
         self.price = null;
         self.priceFormatted = "Loading...";
+        self.pricePrefix = null;
+        self.priceMain = null;
         self.percentChange24h = null;
         self.lastUpdated = null;
         self.isLoading = true;
@@ -50,15 +57,42 @@ class CryptoCurrency {
     function formatPriceDisplay(rate as Float, currencySymbol as String) as Void {
         if (self.price == null) { return; }
         var convertedPrice = self.price * rate;
-        if (convertedPrice >= 100.0) {
-            self.priceFormatted = currencySymbol + convertedPrice.format("%.0f");
-        } else if (convertedPrice >= 10.0) {
-            self.priceFormatted = currencySymbol + convertedPrice.format("%.1f");
-        } else if (convertedPrice >= 1.0) {
-            self.priceFormatted = currencySymbol + convertedPrice.format("%.2f");
-        } else {
-            self.priceFormatted = currencySymbol + convertedPrice.format("%.3f");
+
+        self.pricePrefix = null;
+        self.priceMain = null;
+
+        if (convertedPrice >= 0.001) {
+            var fmt;
+            if (convertedPrice >= 100.0)      { fmt = "%.0f"; }
+            else if (convertedPrice >= 10.0)  { fmt = "%.1f"; }
+            else if (convertedPrice >= 1.0)   { fmt = "%.2f"; }
+            else if (convertedPrice >= 0.1)   { fmt = "%.3f"; }
+            else if (convertedPrice >= 0.01)  { fmt = "%.4f"; }
+            else                              { fmt = "%.5f"; }
+            self.priceFormatted = currencySymbol + convertedPrice.format(fmt);
+            return;
         }
+
+        if (convertedPrice <= 0.0) {
+            self.priceFormatted = currencySymbol + "0";
+            return;
+        }
+
+        // Bracket-zero notation: "0.0(n)XXX" where n is the total count of
+        // leading zeros after the decimal and XXX are 3 significant digits.
+        var shifts = 0;
+        var shifted = convertedPrice;
+        while (shifted < 1.0 and shifts < 20) {
+            shifted = shifted * 10.0;
+            shifts++;
+        }
+        var sigDigits = (shifted * 100.0 + 0.5).toNumber();
+        if (sigDigits > 999) { sigDigits = 999; }
+        var prefix = currencySymbol + "0.0(" + (shifts - 1).toString() + ")";
+        var main = sigDigits.toString();
+        self.pricePrefix = prefix;
+        self.priceMain = main;
+        self.priceFormatted = prefix + main;
     }
 
     function refreshPriceDisplay() as Void {
@@ -76,6 +110,8 @@ class CryptoCurrency {
         self.hasError = true;
         self.errorMessage = errorMessage;
         self.priceFormatted = "Error";
+        self.pricePrefix = null;
+        self.priceMain = null;
     }
     
     function isDataStale() as Boolean {

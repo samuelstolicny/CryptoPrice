@@ -75,10 +75,8 @@ class CryptoPriceView extends WatchUi.View {
         if (itemHeight > maxItemHeight) { itemHeight = maxItemHeight; }
         var startY = topOffset + (availableHeight - (itemCount * itemHeight)) / 2;
 
-        // Determine uniform price font for all items on this page
-        var priceFont = determinePriceFont(dc, screenWidth);
-
         for (var i = 0; i < itemCount; i++) {
+            var priceFont = pickFontForCrypto(dc, _currentCryptos[i], screenWidth);
             drawCryptoCurrency(dc, _currentCryptos[i], screenWidth, startY + (i * itemHeight), itemHeight, priceFont);
         }
 
@@ -98,29 +96,36 @@ class CryptoPriceView extends WatchUi.View {
         return screenWidth * 35 / 100;
     }
 
-    private function determinePriceFont(dc as Dc, screenWidth as Number) as FontDefinition {
-        var mainFont = screenWidth > 300 ? Graphics.FONT_MEDIUM : Graphics.FONT_SMALL;
-        var fallbacks = screenWidth > 300
-            ? [Graphics.FONT_SMALL, Graphics.FONT_TINY]
-            : [Graphics.FONT_TINY, Graphics.FONT_XTINY];
+    private function pickFontForCrypto(dc as Dc, crypto as CryptoCurrency, screenWidth as Number) as FontDefinition {
+        var candidates = screenWidth > 300
+            ? [Graphics.FONT_MEDIUM, Graphics.FONT_SMALL, Graphics.FONT_TINY]
+            : [Graphics.FONT_SMALL, Graphics.FONT_TINY, Graphics.FONT_XTINY];
+        var symbolFont = candidates[0];
         var centerX = screenWidth / 2;
         var margin = getContentMargin(screenWidth);
         var symbolX = centerX - margin;
         var priceX = centerX + margin;
         var availableWidth = priceX - symbolX - 20;
-        var font = mainFont;
+        var symbolWidth = dc.getTextWidthInPixels(crypto.symbol, symbolFont);
 
-        for (var i = 0; i < _currentCryptos.size(); i++) {
-            var crypto = _currentCryptos[i];
-            var symbolWidth = dc.getTextWidthInPixels(crypto.symbol, mainFont);
-            var displayText = crypto.getDisplayText();
-            for (var f = 0; f < fallbacks.size(); f++) {
-                if (symbolWidth + dc.getTextWidthInPixels(displayText, font) > availableWidth) {
-                    font = fallbacks[f];
-                }
+        for (var i = 0; i < candidates.size(); i++) {
+            var priceFont = candidates[i];
+            if (symbolWidth + priceWidthAt(dc, crypto, priceFont) <= availableWidth) {
+                return priceFont;
             }
         }
-        return font;
+        return candidates[candidates.size() - 1];
+    }
+
+    private function priceWidthAt(dc as Dc, crypto as CryptoCurrency, priceFont as FontDefinition) as Number {
+        var canSplit = !crypto.isLoading and !crypto.hasError
+            and crypto.pricePrefix != null and crypto.priceMain != null;
+        if (canSplit) {
+            var prefixFont = smallerFont(priceFont);
+            return dc.getTextWidthInPixels(crypto.pricePrefix, prefixFont)
+                 + dc.getTextWidthInPixels(crypto.priceMain, priceFont);
+        }
+        return dc.getTextWidthInPixels(crypto.getDisplayText(), priceFont);
     }
 
     function drawCryptoCurrency(dc as Dc, crypto as CryptoCurrency, screenWidth as Number, yPosition as Number, itemHeight as Number, priceFont as FontDefinition) as Void {
@@ -144,13 +149,33 @@ class CryptoPriceView extends WatchUi.View {
         }
 
         dc.setColor(priceColor, Graphics.COLOR_TRANSPARENT);
-        dc.drawText(priceX, yPosition, priceFont, displayText, Graphics.TEXT_JUSTIFY_RIGHT);
+        var canSplit = !crypto.isLoading and !crypto.hasError
+            and crypto.pricePrefix != null and crypto.priceMain != null;
+        if (canSplit) {
+            // Render "$0.0(n)" at one font-tier smaller, "XXX" at main price font,
+            // vertically centered on the same line.
+            var prefixFont = smallerFont(priceFont);
+            var mainWidth = dc.getTextWidthInPixels(crypto.priceMain, priceFont);
+            var vcenterY = yPosition + dc.getFontHeight(priceFont) / 2;
+            var vcenter = Graphics.TEXT_JUSTIFY_RIGHT | Graphics.TEXT_JUSTIFY_VCENTER;
+            dc.drawText(priceX, vcenterY, priceFont, crypto.priceMain, vcenter);
+            dc.drawText(priceX - mainWidth, vcenterY, prefixFont, crypto.pricePrefix, vcenter);
+        } else {
+            dc.drawText(priceX, yPosition, priceFont, displayText, Graphics.TEXT_JUSTIFY_RIGHT);
+        }
 
         // Draw percentage
         if (crypto.percentChange24h != null) {
             var changeText = (crypto.percentChange24h >= 0 ? "+" : "") + crypto.percentChange24h.format("%.2f") + "%";
             dc.drawText(priceX, yPosition + mainFontHeight - 5, Graphics.FONT_XTINY, changeText, Graphics.TEXT_JUSTIFY_RIGHT);
         }
+    }
+
+    private function smallerFont(font as FontDefinition) as FontDefinition {
+        if (font == Graphics.FONT_MEDIUM) { return Graphics.FONT_SMALL; }
+        if (font == Graphics.FONT_SMALL)  { return Graphics.FONT_TINY; }
+        if (font == Graphics.FONT_TINY)   { return Graphics.FONT_XTINY; }
+        return Graphics.FONT_XTINY;
     }
     
     function drawPageIndicator(dc as Dc, pageInfo as Dictionary) as Void {
