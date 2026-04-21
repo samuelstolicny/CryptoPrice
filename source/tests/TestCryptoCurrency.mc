@@ -49,6 +49,74 @@ function testPriceFormattingSubDollar(logger as Test.Logger) as Boolean {
     return true;
 }
 
+(:test)
+function testPriceFormattingSubCent(logger as Test.Logger) as Boolean {
+    resetCurrencyToUSD();
+    var crypto = new CryptoCurrency("XLM", "Stellar");
+    crypto.updatePriceData({"price" => 0.0456, "percent_change_24h" => 0.0});
+    Test.assertEqual(crypto.priceFormatted, "$0.0456");
+    return true;
+}
+
+(:test)
+function testPriceFormattingMilliDollar(logger as Test.Logger) as Boolean {
+    resetCurrencyToUSD();
+    var crypto = new CryptoCurrency("SHIB", "Shiba Inu");
+    crypto.updatePriceData({"price" => 0.00234, "percent_change_24h" => 0.0});
+    Test.assertEqual(crypto.priceFormatted, "$0.00234");
+    return true;
+}
+
+(:test)
+function testPriceFormattingTenthMilliDollar(logger as Test.Logger) as Boolean {
+    resetCurrencyToUSD();
+    var crypto = new CryptoCurrency("BONK", "Bonk");
+    crypto.updatePriceData({"price" => 0.000234, "percent_change_24h" => 0.0});
+    Test.assertEqual(crypto.priceFormatted, "$0.0(3)234");
+    return true;
+}
+
+(:test)
+function testPriceFormattingMicroDollar(logger as Test.Logger) as Boolean {
+    resetCurrencyToUSD();
+    var crypto = new CryptoCurrency("PEPE", "Pepe");
+    crypto.updatePriceData({"price" => 0.0000087, "percent_change_24h" => 0.0});
+    Test.assertEqual(crypto.priceFormatted, "$0.0(5)870");
+    return true;
+}
+
+(:test)
+function testBracketNotationSplitsPriceParts(logger as Test.Logger) as Boolean {
+    resetCurrencyToUSD();
+    var crypto = new CryptoCurrency("PEPE", "Pepe");
+    crypto.updatePriceData({"price" => 0.0000087, "percent_change_24h" => 0.0});
+    Test.assertEqual(crypto.pricePrefix, "$0.0(5)");
+    Test.assertEqual(crypto.priceMain, "870");
+    return true;
+}
+
+(:test)
+function testStandardFormatHasNoPriceParts(logger as Test.Logger) as Boolean {
+    resetCurrencyToUSD();
+    var crypto = new CryptoCurrency("BTC", "Bitcoin");
+    crypto.updatePriceData({"price" => 45000.0, "percent_change_24h" => 0.0});
+    Test.assert(crypto.pricePrefix == null);
+    Test.assert(crypto.priceMain == null);
+    return true;
+}
+
+(:test)
+function testSetErrorClearsPriceParts(logger as Test.Logger) as Boolean {
+    resetCurrencyToUSD();
+    var crypto = new CryptoCurrency("PEPE", "Pepe");
+    crypto.updatePriceData({"price" => 0.0000087, "percent_change_24h" => 0.0});
+    Test.assertEqual(crypto.pricePrefix, "$0.0(5)");
+    crypto.setError("Network error");
+    Test.assert(crypto.pricePrefix == null);
+    Test.assert(crypto.priceMain == null);
+    return true;
+}
+
 // ============================================================
 // getPriceChangeColor
 // ============================================================
